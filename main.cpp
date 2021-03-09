@@ -93,6 +93,9 @@ int main(int argc, char* argv[]){
 
 		// main func
 		//wait(nullptr);
+		struct GBN_Buffer subp_stdout;
+		struct GBN_Buffer subp_stderr;
+		struct GBN_Buffer pare_stdin;
 		while(true){
 			int poll_ret=0;
 			struct pollfd fds[3]={};
@@ -119,6 +122,15 @@ int main(int argc, char* argv[]){
 						eprintf("read(fds[0].fd) failed: errno=%d\n",errno);
 						break;
 					}
+					write(_pipe_sub_stdin[1],shared_buffer,read_ret);
+					if(store_buf(pare_stdin,shared_buffer,read_ret)!=0){
+						eprintf("temp buffer full!\n");
+					}
+					while(true){
+						char *p=getline(pare_stdin);
+						if(p== nullptr){break;}
+						printf("parent stdin: %s\n",p);
+					}
 				}
 
 				// first check for POLLIN, and ignore POLLHUP
@@ -129,6 +141,15 @@ int main(int argc, char* argv[]){
 						eprintf("read(fds[1].fd) failed: errno=%d\n",errno);
 						break;
 					}
+					write(1,shared_buffer,read_ret);
+					if(store_buf(subp_stdout,shared_buffer,read_ret)!=0){
+						eprintf("temp buffer full!\n");
+					}
+					while(true){
+						char *p=getline(subp_stdout);
+						if(p== nullptr){break;}
+						printf("subprocess stdout: %s\n",p);
+					}
 				}else if (fds[1].revents & POLLHUP){ // pipe closed, sub-process exited.
 					break;
 				}
@@ -138,6 +159,15 @@ int main(int argc, char* argv[]){
 					if(read_ret==-1){
 						eprintf("read(fds[2].fd) failed: errno=%d\n",errno);
 						break;
+					}
+					write(2,shared_buffer,read_ret);
+					if(store_buf(subp_stderr,shared_buffer,read_ret)!=0){
+						eprintf("temp buffer full!\n");
+					}
+					while(true){
+						char *p=getline(subp_stderr);
+						if(p== nullptr){break;}
+						printf("subprocess stderr: %s\n",p);
 					}
 				}
 			}

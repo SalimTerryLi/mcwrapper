@@ -5,50 +5,56 @@
 #include <cstring>
 #include "utils.h"
 
-static char line_buf[1024]={};
-static size_t line_buf_index_begin=0;
-static size_t line_buf_index_end=0;    // treated as size, but not decreasing when pop.
-
-int store_buf(char *p, size_t size){
-	if (line_buf_index_end + size > sizeof(line_buf)){
+int store_buf(GBN_Buffer &buf,char *p, size_t size){
+	if (buf.line_buf_index_end + size > sizeof(buf.line_buf)){
 		return -1;
 	}
-	memcpy(line_buf+line_buf_index_end,p,size);
-	line_buf_index_end+=size;
+	memcpy(buf.line_buf+buf.line_buf_index_end,p,size);
+	buf.line_buf_index_end+=size;
 	return 0;
 }
 
-void clear_buf(){
-	line_buf_index_begin=0;
-	line_buf_index_end=0;
+void clear_buf(GBN_Buffer &buf){
+	buf.line_buf_index_begin=0;
+	buf.line_buf_index_end=0;
 }
 
-char *getline(){
-	size_t index=line_buf_index_begin;
+char *getline(GBN_Buffer &buf){
+	size_t index=buf.line_buf_index_begin;
 	bool meet_first_valid=false;
 
-	while(index < line_buf_index_end){
+	while(index < buf.line_buf_index_end){
 		if (!meet_first_valid){
-			if((line_buf[index]=='\r')||(line_buf[index]=='\n')||(line_buf[index]=='\0')){
+			if((buf.line_buf[index]=='\r')||(buf.line_buf[index]=='\n')||(buf.line_buf[index]=='\0')){
 				++index;
-				++line_buf_index_begin;
+				++buf.line_buf_index_begin;
 			}else{
 				meet_first_valid=true;
 			}
 		}else{
-			if((line_buf[index]=='\r')||(line_buf[index]=='\n')||(line_buf[index]=='\0')){
-				line_buf[index]='\0';
-				size_t tmp=line_buf_index_begin;
-				if (index==line_buf_index_end-1){   // buffer cleared
-					clear_buf();
+			if((buf.line_buf[index]=='\r')||(buf.line_buf[index]=='\n')||(buf.line_buf[index]=='\0')){
+				buf.line_buf[index]='\0';
+				size_t tmp=buf.line_buf_index_begin;
+				if (index==buf.line_buf_index_end-1){   // buffer cleared
+					clear_buf(buf);
 				}else{
-					line_buf_index_begin=index;
+					buf.line_buf_index_begin=index;
 				}
-				return line_buf+tmp;
+				return buf.line_buf+tmp;
 			}else{
 				++index;
 			}
 		}
+	}
+
+	if (buf.line_buf_index_begin!=buf.line_buf_index_end){  // only happens if a string detected but without any ending.
+		// that means buffer cannot accept next package, but there still parts of string to be read.
+		// push that part into the beginning.
+		char tmp_buf[sizeof(buf.line_buf)]={};
+		memcpy(tmp_buf,buf.line_buf+buf.line_buf_index_begin,buf.line_buf_index_end-buf.line_buf_index_begin);
+		buf.line_buf_index_end-=buf.line_buf_index_begin;
+		buf.line_buf_index_begin=0;
+		memcpy(buf.line_buf,tmp_buf,buf.line_buf_index_end);
 	}
 
 	return nullptr;

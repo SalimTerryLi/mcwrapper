@@ -3,4 +3,16 @@ project(mcwrapper)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(mcwrapper main.cpp utils.cpp)
+find_package(Lua REQUIRED)
+include_directories(${LUA_INCLUDE_DIRS})
+
+set(HEADERS
+        utils.h
+        parser.h)
+
+set(SOURCES
+        main.cpp
+        utils.cpp
+        parser.cpp)
+
+add_executable(mcwrapper ${SOURCES} ${HEADERS})
