@@ -6,12 +6,13 @@
 #define MCWRAPPER_UTILS_H
 
 #include <cstdio>
-#define eprintf(...) fprintf (stderr, __VA_ARGS__)
+#define eprintf(...) fprintf(stderr, __VA_ARGS__)
 
-struct GBN_Buffer{
-	char line_buf[1024]={};
-	size_t line_buf_index_begin=0;
-	size_t line_buf_index_end=0;    // treated as size, but not decreasing when pop.
+struct GBN_Buffer {
+	char line_buf[1024] = {};
+	size_t line_buf_index_begin = 0;
+	size_t line_buf_index_end =
+	        0;// treated as size, but not decreasing when pop.
 };
 
 /*
@@ -30,4 +31,4 @@ void clear_buf(GBN_Buffer &buf);
  */
 char *getline(GBN_Buffer &buf);
 
-#endif //MCWRAPPER_UTILS_H
+#endif// MCWRAPPER_UTILS_H

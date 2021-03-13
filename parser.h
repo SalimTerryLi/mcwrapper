@@ -8,4 +8,4 @@
 void line_parse_stdout(const char *line);
 void line_parse_stderr(const char *line);
 
-#endif //MCWRAPPER_PARSER_H
+#endif// MCWRAPPER_PARSER_H
