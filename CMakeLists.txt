@@ -8,11 +8,11 @@ include_directories(${LUA_INCLUDE_DIRS})
 
 set(HEADERS
         utils.h
-        parser.h)
+        parser.h ServerInfo.h)
 
 set(SOURCES
         main.cpp
         utils.cpp
-        parser.cpp)
+        parser.cpp ServerInfo.cpp)
 
 add_executable(mcwrapper ${SOURCES} ${HEADERS})

@@ -9,6 +9,7 @@
 #include <poll.h>
 
 #include "utils.h"
+#include "parser.h"
 
 pid_t sub_pid;  // sub-process pid
 char** sub_argv;    // sub-process argv, manually malloc
@@ -148,7 +149,7 @@ int main(int argc, char* argv[]){
 					while(true){
 						char *p=getline(subp_stdout);
 						if(p== nullptr){break;}
-						printf("subprocess stdout: %s\n",p);
+						line_parse_stdout(p);
 					}
 				}else if (fds[1].revents & POLLHUP){ // pipe closed, sub-process exited.
 					break;
@@ -167,7 +168,7 @@ int main(int argc, char* argv[]){
 					while(true){
 						char *p=getline(subp_stderr);
 						if(p== nullptr){break;}
-						printf("subprocess stderr: %s\n",p);
+						line_parse_stderr(p);
 					}
 				}
 			}
