@@ -11,6 +11,7 @@
 
 #include "parser.h"
 #include "utils.h"
+#include "webserv/http_server.h"
 
 pid_t sub_pid;  // sub-process pid
 char **sub_argv;// sub-process argv, manually malloc
@@ -88,6 +89,10 @@ int main(int argc, char *argv[]) {
 		if (sub_pid == -1) {// failed to create sub process
 			eprintf("fork failed: errno=%d", errno);
 			goto cleanup_fork;
+		}
+
+		if (start_http_server() != 0) {
+			eprintf("critical error! web server failed to start!\n");
 		}
 
 		close(_pipe_sub_stdin[0]); // read side
@@ -183,6 +188,7 @@ int main(int argc, char *argv[]) {
 				}
 			}
 		}
+		stop_http_server();
 		printf("parent process exiting... waiting for sub-process\n");
 		int sub_process_status = 0;
 		wait(&sub_process_status);// wait for sub-process to exit.
