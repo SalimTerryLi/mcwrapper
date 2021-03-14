@@ -3,4 +3,4 @@ init:
 	@find .githooks -type f -exec ln -sf ../../{} .git/hooks/ \;
 
 format:
-	@clang-format -style=file *.c* *.h* -i
+	@git clang-format --style=file -f
