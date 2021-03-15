@@ -222,9 +222,9 @@ callback_dynamic_http(struct lws *wsi, enum lws_callback_reasons reason,
 "default_mode":"%s",
 "booting_elapsed_s":%.2f,
 "online_since":"%s",
-"player_count":%zu
+"player_count":%d
 })",
-				                  serverHolder.version, serverHolder.default_mode, serverHolder.bootup_time, timebuf, serverHolder.players.size());
+				                  serverHolder.version, serverHolder.default_mode, serverHolder.bootup_time, timebuf, count_online_player());
 			} else {
 				p += lws_snprintf((char *) p, end - p, R"({
 "status":"ERROR",

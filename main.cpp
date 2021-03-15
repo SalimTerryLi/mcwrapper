@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "ServerInfo.h"
 #include "parser.h"
 #include "utils.h"
 #include "webserv/http_server.h"
@@ -68,6 +69,20 @@ int main(int argc, char *argv[]) {
 			goto cleanup_dup;
 		}
 
+		struct pollfd fd[1] = {};
+		fd[0].fd = _pipe_sub_stdin[0];
+		fd[0].events = POLLIN;
+		int pollret = poll(fd, 1, -1);// waiting for parent that asks to start
+		if (pollret == 1 && fd[0].revents == POLLIN) {
+			unsigned char buf[1] = {0xff};
+			read(fd[0].fd, buf, 1);
+			if (buf[0] != 0x12) {// magic number. if not meet, exiting.
+				goto cleanup_malloc;
+			}
+		} else {
+			goto cleanup_malloc;
+		}
+
 		// printf("sub\n");
 		sub_argv = static_cast<char **>(malloc(sizeof(char *) * argc));
 		if (sub_argv == nullptr) {
@@ -91,14 +106,24 @@ int main(int argc, char *argv[]) {
 			goto cleanup_fork;
 		}
 
+		unsigned char tempbuf[1] = {0x12};// magic data to be sent to subp
+
+		if (pthread_mutex_init(&serverHolder_mutex, nullptr) != 0) {
+			eprintf("critical error! pthread_mutex_init for serverHolder_mutex failed!\n");
+			tempbuf[0] = 0xff;
+		}
+
 		if (start_http_server() != 0) {
 			eprintf("critical error! web server failed to start!\n");
+			tempbuf[0] = 0xff;
 		}
 
 		close(_pipe_sub_stdin[0]); // read side
 		close(_pipe_sub_stdout[1]);// write side
 		close(_pipe_sub_stderr[1]);// write side
 		printf("parent process started\n");
+
+		write(_pipe_sub_stdin[1], tempbuf, 1);// send to subprocess
 
 		// main func
 		// wait(nullptr);
@@ -189,6 +214,7 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		stop_http_server();
+		pthread_mutex_destroy(&serverHolder_mutex);
 		printf("parent process exiting... waiting for sub-process\n");
 		int sub_process_status = 0;
 		wait(&sub_process_status);// wait for sub-process to exit.

@@ -94,6 +94,7 @@ bool second_stage(ParserState &state, const char *line) {
 
 bool third_stage(ParserState &state, const char *line) {
 	std::cmatch pieces_match;
+	pthread_mutex_lock(&serverHolder_mutex);
 	if (strstr(state.src_id, "Server thread") == state.src_id) {
 		if (state.level == INFO) {
 			if (std::regex_search(line, pieces_match,
@@ -141,6 +142,7 @@ bool third_stage(ParserState &state, const char *line) {
 			//
 		}
 	}
+	pthread_mutex_unlock(&serverHolder_mutex);
 	return false;
 }
 

@@ -8,6 +8,7 @@
 #include <time.h>
 
 #include <list>
+#include <pthread.h>
 
 using namespace std;
 
@@ -38,5 +39,8 @@ struct Player {
 };
 
 extern struct Server serverHolder;
+extern pthread_mutex_t serverHolder_mutex;// inited in main.cpp
+
+int count_online_player();
 
 #endif// MCWRAPPER_SERVERINFO_H
