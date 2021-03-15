@@ -38,9 +38,11 @@ const std::regex regex_l3_default_mode(
 const std::regex regex_l3_preparing_level(
         R"~(^Preparing level "([\s\S]+)")~");// grp1: level name
 const std::regex regex_l3_booting_time(
-        R"(^Done \(([0-9]+.[0-9]+)s\)! For help, type "help")");// grp1: time
-                                                                // float sec
-
+        R"(^Done \(([0-9]+.[0-9]+)s\)! For help, type "help")");                     // grp1: time
+                                                                                     // float sec
+const std::regex regex_l3_player_uuid(R"(^UUID of player ([\S]+) is ([0-9a-f\-]+))");// grp1: name, grp2: uuid
+const std::regex regex_l3_player_login(
+        R"(^([\S]+)\[\/([\S.:]+)\] logged in with entity id [0-9]+ at \(([-]?[0-9]+.[0-9]+), ([-]?[0-9]+.[0-9]+), ([-]?[0-9]+.[0-9]+)\))");// grp1: name, grp2: path, grp3~5: x,y,z
 /*
  * parse timestamp
  * must match [xx:xx:xx]
@@ -93,6 +95,7 @@ bool second_stage(ParserState &state, const char *line) {
 }
 
 bool third_stage(ParserState &state, const char *line) {
+	bool ret = true;
 	std::cmatch pieces_match;
 	pthread_mutex_lock(&serverHolder_mutex);
 	if (strstr(state.src_id, "Server thread") == state.src_id) {
@@ -123,9 +126,38 @@ bool third_stage(ParserState &state, const char *line) {
 			} else if (std::regex_search(line, pieces_match,
 			                             regex_l3_rcon_addr)) {// rcon addr
 				strcpy(serverHolder.level_name, pieces_match[1].str().c_str());
+			} else if (std::regex_search(line, pieces_match,
+			                             regex_l3_player_login)) {// player login
+				printf("player logib\n");
+				bool is_found = false;
+				for (Player &player : serverHolder.players) {
+					if (strstr(player.name, pieces_match[1].str().c_str())) {
+						is_found = true;
+						player.login_ts = time(nullptr);
+						player.login_pos[0] = atof(pieces_match[3].str().c_str());
+						player.login_pos[1] = atof(pieces_match[4].str().c_str());
+						player.login_pos[2] = atof(pieces_match[5].str().c_str());
+						player.isOnline = true;
+						break;
+					}
+				}
+				if (!is_found) {
+					Player player = {};
+					strcpy(player.name, pieces_match[1].str().c_str());
+					player.login_ts = time(nullptr);
+					player.login_pos[0] = atof(pieces_match[3].str().c_str());
+					player.login_pos[1] = atof(pieces_match[4].str().c_str());
+					player.login_pos[2] = atof(pieces_match[5].str().c_str());
+					player.isOnline = true;
+					serverHolder.players.push_back(player);
+				}
+			} else {
+				ret = false;
 			}
 		} else if (state.level == WARN) {
 			//
+		} else {
+			ret = false;
 		}
 	} else if (strstr(state.src_id, "main") == state.src_id) {
 		if (state.level == INFO) {
@@ -134,16 +166,40 @@ bool third_stage(ParserState &state, const char *line) {
 			}
 		} else if (state.level == WARN) {
 			//
+		} else {
+			ret = false;
 		}
 	} else if (strstr(state.src_id, "User Authenticator") == state.src_id) {
 		if (state.level == INFO) {
-			//
+			if (std::regex_search(line, pieces_match,
+			                      regex_l3_player_uuid)) {// player uuid
+				bool is_found = false;
+				for (Player &player : serverHolder.players) {
+					if (strstr(player.name, pieces_match[1].str().c_str())) {
+						is_found = true;
+						strcpy(player.uuid, pieces_match[2].str().c_str());
+						break;
+					}
+				}
+				if (!is_found) {
+					Player player = {};
+					strcpy(player.name, pieces_match[1].str().c_str());
+					strcpy(player.uuid, pieces_match[2].str().c_str());
+					serverHolder.players.push_back(player);
+				}
+			} else {
+				ret = false;
+			}
 		} else if (state.level == WARN) {
 			//
+		} else {
+			ret = false;
 		}
+	} else {
+		ret = false;
 	}
 	pthread_mutex_unlock(&serverHolder_mutex);
-	return false;
+	return ret;
 }
 
 void line_parse_stdout(const char *line) { first_stage(line); }
