@@ -36,6 +36,9 @@ struct Player {
 	time_t login_ts = {};
 
 	float *getSavedPos();
+
+	bool operator==(const Player &rhs) const;
+	bool operator!=(const Player &rhs) const;
 };
 
 extern struct Server serverHolder;

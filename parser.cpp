@@ -43,6 +43,9 @@ const std::regex regex_l3_booting_time(
 const std::regex regex_l3_player_uuid(R"(^UUID of player ([\S]+) is ([0-9a-f\-]+))");// grp1: name, grp2: uuid
 const std::regex regex_l3_player_login(
         R"(^([\S]+)\[\/([\S.:]+)\] logged in with entity id [0-9]+ at \(([-]?[0-9]+.[0-9]+), ([-]?[0-9]+.[0-9]+), ([-]?[0-9]+.[0-9]+)\))");// grp1: name, grp2: path, grp3~5: x,y,z
+const std::regex regex_l3_player_logined(R"(^([\S]+) joined the game)");
+const std::regex regex_l3_player_left_game(R"(^([\S]+) left the game)");
+
 /*
  * parse timestamp
  * must match [xx:xx:xx]
@@ -128,28 +131,50 @@ bool third_stage(ParserState &state, const char *line) {
 				strcpy(serverHolder.level_name, pieces_match[1].str().c_str());
 			} else if (std::regex_search(line, pieces_match,
 			                             regex_l3_player_login)) {// player login
-				printf("player logib\n");
 				bool is_found = false;
 				for (Player &player : serverHolder.players) {
 					if (strstr(player.name, pieces_match[1].str().c_str())) {
 						is_found = true;
-						player.login_ts = time(nullptr);
 						player.login_pos[0] = atof(pieces_match[3].str().c_str());
 						player.login_pos[1] = atof(pieces_match[4].str().c_str());
 						player.login_pos[2] = atof(pieces_match[5].str().c_str());
-						player.isOnline = true;
 						break;
 					}
 				}
 				if (!is_found) {
 					Player player = {};
 					strcpy(player.name, pieces_match[1].str().c_str());
-					player.login_ts = time(nullptr);
 					player.login_pos[0] = atof(pieces_match[3].str().c_str());
 					player.login_pos[1] = atof(pieces_match[4].str().c_str());
 					player.login_pos[2] = atof(pieces_match[5].str().c_str());
-					player.isOnline = true;
 					serverHolder.players.push_back(player);
+				}
+			} else if (std::regex_search(line, pieces_match,
+			                             regex_l3_player_logined)) {// player login
+				bool is_found = false;
+				for (Player &player : serverHolder.players) {
+					if (strstr(player.name, pieces_match[1].str().c_str())) {
+						is_found = true;
+						player.login_ts = time(nullptr);
+						player.isOnline = true;
+						break;
+					}
+				}
+				if (!is_found) {
+					eprintf("Invalid player login event! %s", pieces_match[1].str().c_str());
+				}
+			} else if (std::regex_search(line, pieces_match,
+			                             regex_l3_player_left_game)) {// player login
+				bool is_found = false;
+				for (Player &player : serverHolder.players) {
+					if (strstr(player.name, pieces_match[1].str().c_str())) {
+						is_found = true;
+						serverHolder.players.remove(player);// TODO: not safe, but OK
+						break;
+					}
+				}
+				if (!is_found) {
+					eprintf("Invalid player left game event! %s", pieces_match[1].str().c_str());
 				}
 			} else {
 				ret = false;

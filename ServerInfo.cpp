@@ -3,6 +3,7 @@
 //
 
 #include "ServerInfo.h"
+#include <cstring>
 
 struct Server serverHolder;
 pthread_mutex_t serverHolder_mutex = {};
@@ -21,4 +22,11 @@ int count_online_player() {
 	}
 	pthread_mutex_unlock(&serverHolder_mutex);
 	return ret;
+}
+
+bool Player::operator==(const Player &rhs) const {
+	return strstr(name, rhs.name) == name;
+}
+bool Player::operator!=(const Player &rhs) const {
+	return !(rhs == *this);
 }
