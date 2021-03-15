@@ -12,15 +12,15 @@ float *Player::getSavedPos() {
 	return nullptr;
 }
 
-int count_online_player() {
+int count_online_player(bool do_lock) {
 	int ret = 0;
-	pthread_mutex_lock(&serverHolder_mutex);
+	if (do_lock) pthread_mutex_lock(&serverHolder_mutex);
 	for (Player player : serverHolder.players) {
 		if (player.isOnline) {
 			++ret;
 		}
 	}
-	pthread_mutex_unlock(&serverHolder_mutex);
+	if (do_lock) pthread_mutex_unlock(&serverHolder_mutex);
 	return ret;
 }
 

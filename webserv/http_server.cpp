@@ -214,6 +214,7 @@ callback_dynamic_http(struct lws *wsi, enum lws_callback_reasons reason,
 				 * valid behind the buffer we will send.
 				 */
 			if (strstr(pss->path, "/info")) {
+				pthread_mutex_lock(&serverHolder_mutex);
 				local_t = localtime(&serverHolder.boot_ts);
 				strftime(timebuf, 32, "%c", local_t);
 				p += lws_snprintf((char *) p, end - p, R"({
@@ -224,7 +225,39 @@ callback_dynamic_http(struct lws *wsi, enum lws_callback_reasons reason,
 "online_since":"%s",
 "player_count":%d
 })",
-				                  serverHolder.version, serverHolder.default_mode, serverHolder.bootup_time, timebuf, count_online_player());
+				                  serverHolder.version, serverHolder.default_mode, serverHolder.bootup_time, timebuf, count_online_player(false));
+				pthread_mutex_unlock(&serverHolder_mutex);
+			} else if (strstr(pss->path, "/players")) {
+				p += lws_snprintf((char *) p, end - p, R"({"status":"OK","players":[)");
+				pthread_mutex_lock(&serverHolder_mutex);
+				for (Player &player : serverHolder.players) {
+					if (player.isOnline) {
+						p += lws_snprintf((char *) p, end - p, R"("%s")", player.name);
+					}
+					if (serverHolder.players.back() != player) {
+						p += lws_snprintf((char *) p, end - p, R"(,)");
+					}
+				}
+				pthread_mutex_unlock(&serverHolder_mutex);
+				p += lws_snprintf((char *) p, end - p, R"(]})");
+			} else if (strstr(pss->path, "/player/")) {
+				pthread_mutex_lock(&serverHolder_mutex);
+				for (Player &player : serverHolder.players) {
+					if (player.isOnline && strstr(player.name, pss->path + 8) == player.name) {
+						local_t = localtime(&serverHolder.boot_ts);
+						strftime(timebuf, 32, "%c", local_t);
+						p += lws_snprintf((char *) p, end - p, R"({
+"status":"OK",
+"name":"%s",
+"uuid":"%s",
+"login_pos":[%.5f,%.5f,%.5f],
+"login_time":"%s"
+})",
+						                  player.name, player.uuid, player.login_pos[0], player.login_pos[1], player.login_pos[2], timebuf);
+						break;
+					}
+				}
+				pthread_mutex_unlock(&serverHolder_mutex);
 			} else {
 				p += lws_snprintf((char *) p, end - p, R"({
 "status":"ERROR",

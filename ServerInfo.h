@@ -44,6 +44,6 @@ struct Player {
 extern struct Server serverHolder;
 extern pthread_mutex_t serverHolder_mutex;// inited in main.cpp
 
-int count_online_player();
+int count_online_player(bool do_lock = true);
 
 #endif// MCWRAPPER_SERVERINFO_H
