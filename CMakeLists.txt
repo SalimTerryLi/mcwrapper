@@ -16,6 +16,7 @@ set(HEADERS
         parser.h
         ServerInfo.h
         webserv/http_server.h
+        perf_monitor.h
         )
 
 set(SOURCES
@@ -24,6 +25,7 @@ set(SOURCES
         parser.cpp
         ServerInfo.cpp
         webserv/http_server.cpp
+        perf_monitor.cpp
         )
 
 add_executable(mcwrapper ${SOURCES} ${HEADERS})

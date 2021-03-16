@@ -11,6 +11,7 @@
 
 #include "ServerInfo.h"
 #include "parser.h"
+#include "perf_monitor.h"
 #include "utils.h"
 #include "webserv/http_server.h"
 
@@ -110,6 +111,11 @@ int main(int argc, char *argv[]) {
 
 		if (pthread_mutex_init(&serverHolder_mutex, nullptr) != 0) {
 			eprintf("critical error! pthread_mutex_init for serverHolder_mutex failed!\n");
+			tempbuf[0] = 0xff;
+		}
+
+		if (start_perf_monitor(sub_pid) != 0) {
+			eprintf("critical error! perf monitor failed to start!\n");
 			tempbuf[0] = 0xff;
 		}
 
@@ -214,6 +220,7 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		stop_http_server();
+		stop_perf_monitor();
 		pthread_mutex_destroy(&serverHolder_mutex);
 		printf("parent process exiting... waiting for sub-process\n");
 		int sub_process_status = 0;

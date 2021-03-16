@@ -4,6 +4,7 @@
 
 #include "http_server.h"
 #include "../ServerInfo.h"
+#include "../perf_monitor.h"
 #include "../utils.h"
 
 #include <csignal>
@@ -258,6 +259,15 @@ callback_dynamic_http(struct lws *wsi, enum lws_callback_reasons reason,
 					}
 				}
 				pthread_mutex_unlock(&serverHolder_mutex);
+			} else if (strstr(pss->path, "/perf")) {
+
+				p += lws_snprintf((char *) p, end - p, R"({
+"status":"OK",
+"cpu_usage":%.4f,
+"cpu_cores":%lu,
+"mem_mb":%ld
+})",
+				                  get_cpu_usage_norm(), get_cpu_cores(), get_mem_usage_m());
 			} else {
 				p += lws_snprintf((char *) p, end - p, R"({
 "status":"ERROR",
