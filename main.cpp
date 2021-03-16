@@ -21,6 +21,8 @@ char **sub_argv;// sub-process argv, manually malloc
 int main(int argc, char *argv[]);
 
 int main(int argc, char *argv[]) {
+	bool is_stdin_available = fcntl(0, F_GETFD) != 0;
+
 	int ret = 0;
 	// printout cmd line
 	for (int i = 1; i < argc; ++i) {
@@ -50,8 +52,6 @@ int main(int argc, char *argv[]) {
 		eprintf("pipe(_pipe_sub_stderr) failed\n");
 		goto cleanup_pipe_sub_stderr;
 	}
-	fcntl(_pipe_sub_stdout[0], F_SETFL, fcntl(_pipe_sub_stdout[0], F_GETFL) | O_NONBLOCK);
-	fcntl(_pipe_sub_stderr[0], F_SETFL, fcntl(_pipe_sub_stderr[0], F_GETFL) | O_NONBLOCK);
 
 	sub_pid = fork();
 	if (sub_pid == 0) {            // sub-process
@@ -103,7 +103,15 @@ int main(int argc, char *argv[]) {
 		close(_pipe_sub_stdout[1]);// write side
 		close(_pipe_sub_stderr[1]);// write side
 
-	} else {                // parent
+	} else {// parent
+		fcntl(_pipe_sub_stdout[0], F_SETFL, fcntl(_pipe_sub_stdout[0], F_GETFL) | O_NONBLOCK);
+		fcntl(_pipe_sub_stderr[0], F_SETFL, fcntl(_pipe_sub_stderr[0], F_GETFL) | O_NONBLOCK);
+		if (is_stdin_available) {
+			printf("WARNING: stdin disabled\n");
+		} else {
+			fcntl(0, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
+		}
+
 		if (sub_pid == -1) {// failed to create sub process
 			eprintf("fork failed: errno=%d", errno);
 			goto cleanup_fork;
@@ -134,7 +142,6 @@ int main(int argc, char *argv[]) {
 		write(_pipe_sub_stdin[1], tempbuf, 1);// send to subprocess
 
 		// main func
-		// wait(nullptr);
 		struct GBN_Buffer subp_stdout;
 		struct GBN_Buffer subp_stderr;
 		struct GBN_Buffer pare_stdin;
@@ -148,8 +155,13 @@ int main(int argc, char *argv[]) {
 			fds[2].fd = _pipe_sub_stderr[0];// sub-process stderr
 			fds[2].events = POLLIN;
 
-			poll_ret = poll(fds, 3, -1);// poll!
-			if (poll_ret == -1) {       // error
+			if (is_stdin_available) {
+				poll_ret = poll(fds, 3, -1);// poll!
+			} else {
+				poll_ret = poll(fds + 1, 2, -1);// poll!
+			}
+
+			if (poll_ret == -1) {// error
 				eprintf("poll failed: errno=%d\n", errno);
 				break;
 			} else if (poll_ret == 0) {
