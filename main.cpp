@@ -38,18 +38,20 @@ int main(int argc, char *argv[]) {
 	int _pipe_sub_stdin[2] = {}; // main writes to fork
 	int _pipe_sub_stdout[2] = {};// fork writes to main
 	int _pipe_sub_stderr[2] = {};// fork writes to main
-	if (pipe2(_pipe_sub_stdout, O_NONBLOCK) == -1) {
+	if (pipe(_pipe_sub_stdout) == -1) {
 		eprintf("pipe(_pipe_sub_stdout) failed\n");
 		goto cleanup_pipe_sub_stdout;
 	}
-	if (pipe2(_pipe_sub_stdin, O_NONBLOCK) == -1) {
+	if (pipe(_pipe_sub_stdin) == -1) {
 		eprintf("pipe(_pipe_sub_stdin) failed\n");
 		goto cleanup_pipe_sub_stdin;
 	}
-	if (pipe2(_pipe_sub_stderr, O_NONBLOCK) == -1) {
+	if (pipe(_pipe_sub_stderr) == -1) {
 		eprintf("pipe(_pipe_sub_stderr) failed\n");
 		goto cleanup_pipe_sub_stderr;
 	}
+	fcntl(_pipe_sub_stdout[0], F_SETFL, fcntl(_pipe_sub_stdout[0], F_GETFL) | O_NONBLOCK);
+	fcntl(_pipe_sub_stderr[0], F_SETFL, fcntl(_pipe_sub_stderr[0], F_GETFL) | O_NONBLOCK);
 
 	sub_pid = fork();
 	if (sub_pid == 0) {            // sub-process
@@ -171,7 +173,6 @@ int main(int argc, char *argv[]) {
 						if (p == nullptr) {
 							break;
 						}
-						printf("parent stdin: %s\n", p);
 					}
 				}
 
